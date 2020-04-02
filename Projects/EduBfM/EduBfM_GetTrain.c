@@ -99,7 +99,9 @@ Four EduBfM_GetTrain(
 	/* These local variables are used in the solution code. However, you don¡¯t have to use all these variables in your code, and you may also declare and use additional local variables if needed. */
     Four                e;                      /* for error */
     Four                index;                  /* index of the buffer pool */
-
+    
+    Four  		hashval;
+    Four		hashentry;
 
     /*@ Check the validity of given parameters */
     /* Some restrictions may be added         */
@@ -108,8 +110,16 @@ Four EduBfM_GetTrain(
     /* Is the buffer type valid? */
     if(IS_BAD_BUFFERTYPE(type)) ERR(eBADBUFFERTYPE_BFM);	
 
-
-
+    printf("volNo is %d\n",trainId->volNo);
+    printf("pageNo is %d\n",trainId->pageNo);
+    printf("hashtable size is %d\n",HASHTABLESIZE(type));
+    hashval=(trainId->volNo + trainId->pageNo)%HASHTABLESIZE(type);
+    hashentry=BI_HASHTABLEENTRY(type,hashval);
+    printf("hashentry is %d\n",hashentry);
+    
+    if(hashentry!=-1){
+	//array index
+    }
     return(eNOERROR);   /* No error */
 
 }  /* EduBfM_GetTrain() */
