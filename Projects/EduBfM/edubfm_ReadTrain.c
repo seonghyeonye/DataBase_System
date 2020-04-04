@@ -93,13 +93,16 @@ Four edubfm_ReadTrain(
     char    *aTrain,		/* OUT a pointer to buffer */
     Four    type )		/* IN buffer type */
 {
-	/* These local variables are used in the solution code. However, you don¡¯t have to use all these variables in your code, and you may also declare and use additional local variables if needed. */
+	/* These local variables are used in the solution code. However, you donï¿½ï¿½t have to use all these variables in your code, and you may also declare and use additional local variables if needed. */
     Four e;			/* for error */
 
 
 	/* Error check whether using not supported functionality by EduBfM */
 	if (RM_IS_ROLLBACK_REQUIRED()) ERR(eNOTSUPPORTED_EDUBFM);
-
+    
+    /* Read the page from the disk */
+    e = RDsM_ReadTrain(trainId, aTrain, BI_BUFSIZE(type));
+    if( e < 0 ) ERR( e );
 
 
     return( eNOERROR );

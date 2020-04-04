@@ -89,12 +89,9 @@ Four EduBfM_FlushAll(void)
     for (type=PAGE_BUF;type<=LOT_LEAF_BUF;type++){
         for (i=0;i<BI_NBUFS(type);i++){
             if(BI_BITS(type,i)&DIRTY){
-                //printf("pagenumber is %d\n",BI_KEY(type,i).pageNo);
                 trainId.pageNo=BI_KEY(type,i).pageNo;
                 trainId.volNo=BI_KEY(type,i).volNo;
-                //printf("page of train is %d\n",trainId.pageNo);
-                //printf("vol of trainId %d\n",trainId.volNo);
-                bfm_FlushTrain(&trainId,type);
+                edubfm_FlushTrain(&trainId,type);
             }
         }
     }

@@ -90,7 +90,7 @@ Four EduBfM_DiscardAll(void)
             BI_BITS(type,i)=ALL_0;
         }
     }
-    bfm_DeleteAll();
+    edubfm_DeleteAll();
 
     return(eNOERROR);
 

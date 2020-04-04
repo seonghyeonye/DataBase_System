@@ -98,12 +98,9 @@ Four EduBfM_SetDirty(
     hashkey.pageNo=trainId->pageNo;
     hashkey.volNo=trainId->volNo;
 
-    index=bfm_LookUp(&hashkey,type);
+    index=edubfm_LookUp(&hashkey,type);
 
-    //printf("bits before is %d\n",BI_BITS(type,index));
-    //printf("expected cal bits is %d\n",BI_BITS(type,index)||DIRTY);
     BI_BITS(type,index)=BI_BITS(type,index)|DIRTY;
-    //printf("result bit is %d\n",BI_BITS(type,index));
 
     return( eNOERROR );
 

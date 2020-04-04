@@ -95,17 +95,49 @@ extern CfgParams_T sm_cfgParams;
 Four edubfm_AllocTrain(
     Four 	type)			/* IN type of buffer (PAGE or TRAIN) */
 {
-	/* These local variables are used in the solution code. However, you don¡¯t have to use all these variables in your code, and you may also declare and use additional local variables if needed. */
+	/* These local variables are used in the solution code. However, you donï¿½ï¿½t have to use all these variables in your code, and you may also declare and use additional local variables if needed. */
     Four 	e;			/* for error */
     Four 	victim;			/* return value */
     Four 	i;
+    Four    j;
+    Four    index;
+    TrainID trainId;
+    BfMHashKey *key;
     
 
 	/* Error check whether using not supported functionality by EduBfM */
 	if(sm_cfgParams.useBulkFlush) ERR(eNOTSUPPORTED_EDUBFM);
 
+    for(j=0; j<2; j++){
+        for(i=0; i<BI_NBUFS(type);i++){
+            index= (BI_NEXTVICTIM(type)+i)%BI_NBUFS(type);
+            if(BI_FIXED(type,index)==0){
+                if(BI_BITS(type,index)&REFER){
+                    BI_BITS(type,index)&=~REFER;
+                }
+                else{
+                    j=3;
+                    break;
+                }
+            }
+        }
+    }
 
+    if(j==2) ERR(eNOUNFIXEDBUF_BFM);
+
+    if(BI_BITS(type,index)&DIRTY){
+        trainId.pageNo=BI_KEY(type,index).pageNo;
+        trainId.volNo=BI_KEY(type,index).volNo;
+        edubfm_FlushTrain(&trainId,type);
+    }
     
+    BI_BITS(type,index)=ALL_0;
+    BI_NEXTVICTIM(type)=(index+1)%BI_NBUFS(type);
+
+    key = &BI_KEY(type,index);
+    edubfm_Delete(key,type);
+
+    victim=index;
     return( victim );
     
 }  /* edubfm_AllocTrain */

@@ -113,64 +113,27 @@ Four EduBfM_GetTrain(
     /* Is the buffer type valid? */
     if(IS_BAD_BUFFERTYPE(type)) ERR(eBADBUFFERTYPE_BFM);	
 
-    //printf("volNo is %d\n",trainId->volNo);
-    //printf("pageNo is %d\n",trainId->pageNo);
-    //printf("hashtable size is %d\n",HASHTABLESIZE(type));
-    //hashval=(trainId->volNo + trainId->pageNo)%HASHTABLESIZE(type);
     hashkey.volNo=trainId->volNo;
     hashkey.pageNo=trainId->pageNo;
-   
 
-    //arrayidx=BI_HASHTABLEENTRY(type,hashval);
-    //printf("hashentry is %d\n",arrayidx);
-    
-    arrayidx=bfm_LookUp(&hashkey,type);
+    arrayidx=edubfm_LookUp(&hashkey,type);
 
-//    printf("hashentry is %d\n",arrayidx);
-    
    if(arrayidx!=-1){
 	    BI_FIXED(type,arrayidx)++;
         BI_BITS(type,arrayidx)|=REFER;
         *retBuf=BI_BUFFER(type,arrayidx);
-        // Page * retPage = *retBuf;
-        // printf("expected is %d\n",retPage->header.flags);
-        //printf("fixed value is %d\n",BI_FIXED(type,arrayidx));
-        //printf("page pointer is %x\n", retBuf);
- 	//retBuf=&bufelem;
         return(eNOERROR);
     }
-    //printf("arrayidx is -1\n");
-    
-   /* while(arrayidx!=-1){
-	//array index
-        printf("arrayidx is %d\n",arrayidx);
-	//struct BfMHashKey buftabkey = BI_KEY(type,arrayidx);
-	if(trainId->pageNo==BI_KEY(type,arrayidx).pageNo&&trainId->volNo==BI_KEY(type,arrayidx).volNo){
-	   BI_FIXED(type,arrayidx)++;
-	   BI_BITS(type,arrayidx)=REFER;
-	   return(eNOERROR); 
-    	}	
-	else if(BI_NEXTHASHENTRY(type,arrayidx)==-1){
-	   break;
-        }
-	else{
-	   arrayidx=BI_NEXTHASHENTRY(type,arrayidx);
-	}
-    }*/
 
     char * newbuf;
-	newindex = bfm_AllocTrain(type);
-	bfm_ReadTrain(trainId,BI_BUFFER(type,newindex),type);
-    //bfm_ReadTrain(trainId,newbuf,type);
-	//printf("newindex is %d\n",newindex);
+	newindex = edubfm_AllocTrain(type);
+	edubfm_ReadTrain(trainId,BI_BUFFER(type,newindex),type);
 	BI_KEY(type,newindex)=hashkey;
 	BI_FIXED(type,newindex)=1;
 	BI_BITS(type,newindex)|=REFER;
 
-	bfm_Insert(&hashkey,newindex,type);
+	edubfm_Insert(&hashkey,newindex,type);
     *retBuf=BI_BUFFER(type,newindex);
-    //*retBuf=newbuf;
-	//retBuf=&bufelem;
 
     return(eNOERROR);   /* No error */
 

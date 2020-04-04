@@ -97,17 +97,14 @@ Four EduBfM_FreeTrain(
     hashkey.pageNo=trainId->pageNo;
     hashkey.volNo=trainId->volNo;
 
-    arrayidx=bfm_LookUp(&hashkey,type);
-    //printf("arrayidx is %d\n",arrayidx);
-   // if(!((BufferTable*)bufInfo[type].bufTable)[arrayidx])
-//	ERR(eNOTFOUND_BFM);
+    arrayidx=edubfm_LookUp(&hashkey,type);
 
     if(BI_FIXED(type,arrayidx)>0){
-	//printf("decrease fix\n");
 	BI_FIXED(type,arrayidx)--;
     }
     else{
 	printf("Warning: Fixed counter is less than 0!!!\n");
+    printf("trainId = {%d,  %d}\n", trainId->volNo,trainId->pageNo);
     }	
     
     return( eNOERROR );
