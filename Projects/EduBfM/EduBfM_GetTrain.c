@@ -96,12 +96,15 @@ Four EduBfM_GetTrain(
     char                **retBuf,               /* OUT pointer to the returned buffer */
     Four                type )                  /* IN buffer type */
 {
-	/* These local variables are used in the solution code. However, you don¡¯t have to use all these variables in your code, and you may also declare and use additional local variables if needed. */
+	/* These local variables are used in the solution code. However, you donï¿½ï¿½t have to use all these variables in your code, and you may also declare and use additional local variables if needed. */
     Four                e;                      /* for error */
     Four                index;                  /* index of the buffer pool */
     
     Four  		hashval;
-    Four		hashentry;
+    Four		arrayidx;
+    Four 		newindex;
+    BfMHashKey		hashkey;
+    //char 		*bufelem;
 
     /*@ Check the validity of given parameters */
     /* Some restrictions may be added         */
@@ -110,16 +113,65 @@ Four EduBfM_GetTrain(
     /* Is the buffer type valid? */
     if(IS_BAD_BUFFERTYPE(type)) ERR(eBADBUFFERTYPE_BFM);	
 
-    printf("volNo is %d\n",trainId->volNo);
-    printf("pageNo is %d\n",trainId->pageNo);
-    printf("hashtable size is %d\n",HASHTABLESIZE(type));
-    hashval=(trainId->volNo + trainId->pageNo)%HASHTABLESIZE(type);
-    hashentry=BI_HASHTABLEENTRY(type,hashval);
-    printf("hashentry is %d\n",hashentry);
+    //printf("volNo is %d\n",trainId->volNo);
+    //printf("pageNo is %d\n",trainId->pageNo);
+    //printf("hashtable size is %d\n",HASHTABLESIZE(type));
+    //hashval=(trainId->volNo + trainId->pageNo)%HASHTABLESIZE(type);
+    hashkey.volNo=trainId->volNo;
+    hashkey.pageNo=trainId->pageNo;
+   
+
+    //arrayidx=BI_HASHTABLEENTRY(type,hashval);
+    //printf("hashentry is %d\n",arrayidx);
     
-    if(hashentry!=-1){
-	//array index
+    arrayidx=bfm_LookUp(&hashkey,type);
+
+//    printf("hashentry is %d\n",arrayidx);
+    
+   if(arrayidx!=-1){
+	    BI_FIXED(type,arrayidx)++;
+        BI_BITS(type,arrayidx)|=REFER;
+        *retBuf=BI_BUFFER(type,arrayidx);
+        // Page * retPage = *retBuf;
+        // printf("expected is %d\n",retPage->header.flags);
+        //printf("fixed value is %d\n",BI_FIXED(type,arrayidx));
+        //printf("page pointer is %x\n", retBuf);
+ 	//retBuf=&bufelem;
+        return(eNOERROR);
     }
+    //printf("arrayidx is -1\n");
+    
+   /* while(arrayidx!=-1){
+	//array index
+        printf("arrayidx is %d\n",arrayidx);
+	//struct BfMHashKey buftabkey = BI_KEY(type,arrayidx);
+	if(trainId->pageNo==BI_KEY(type,arrayidx).pageNo&&trainId->volNo==BI_KEY(type,arrayidx).volNo){
+	   BI_FIXED(type,arrayidx)++;
+	   BI_BITS(type,arrayidx)=REFER;
+	   return(eNOERROR); 
+    	}	
+	else if(BI_NEXTHASHENTRY(type,arrayidx)==-1){
+	   break;
+        }
+	else{
+	   arrayidx=BI_NEXTHASHENTRY(type,arrayidx);
+	}
+    }*/
+
+    char * newbuf;
+	newindex = bfm_AllocTrain(type);
+	bfm_ReadTrain(trainId,BI_BUFFER(type,newindex),type);
+    //bfm_ReadTrain(trainId,newbuf,type);
+	//printf("newindex is %d\n",newindex);
+	BI_KEY(type,newindex)=hashkey;
+	BI_FIXED(type,newindex)=1;
+	BI_BITS(type,newindex)|=REFER;
+
+	bfm_Insert(&hashkey,newindex,type);
+    *retBuf=BI_BUFFER(type,newindex);
+    //*retBuf=newbuf;
+	//retBuf=&bufelem;
+
     return(eNOERROR);   /* No error */
 
 }  /* EduBfM_GetTrain() */

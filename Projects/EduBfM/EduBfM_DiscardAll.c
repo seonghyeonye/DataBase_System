@@ -79,12 +79,18 @@
  */
 Four EduBfM_DiscardAll(void)
 {
-	/* These local variables are used in the solution code. However, you don¡¯t have to use all these variables in your code, and you may also declare and use additional local variables if needed. */
+	/* These local variables are used in the solution code. However, you donï¿½ï¿½t have to use all these variables in your code, and you may also declare and use additional local variables if needed. */
     Four 	e;			/* error */
     Two 	i;			/* index */
     Four 	type;			/* buffer type */
 
-
+    for (type=PAGE_BUF;type<=LOT_LEAF_BUF;type++){
+        for (i=0;i<BI_NBUFS(type);i++){
+            SET_NILBFMHASHKEY(BI_KEY(type,i));
+            BI_BITS(type,i)=ALL_0;
+        }
+    }
+    bfm_DeleteAll();
 
     return(eNOERROR);
 

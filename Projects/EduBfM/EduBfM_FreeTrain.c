@@ -84,14 +84,31 @@ Four EduBfM_FreeTrain(
     TrainID             *trainId,       /* IN train to be freed */
     Four                type)           /* IN buffer type */
 {
-	/* These local variables are used in the solution code. However, you don¡¯t have to use all these variables in your code, and you may also declare and use additional local variables if needed. */
+	/* These local variables are used in the solution code. However, you donï¿½ï¿½t have to use all these variables in your code, and you may also declare and use additional local variables if needed. */
     Four                index;          /* index on buffer holding the train */
     Four 		e;		/* error code */
+
+    BfMHashKey		hashkey;
+    Four 		arrayidx;
 
     /*@ check if the parameter is valid. */
     if (IS_BAD_BUFFERTYPE(type)) ERR(eBADBUFFERTYPE_BFM);	
 
+    hashkey.pageNo=trainId->pageNo;
+    hashkey.volNo=trainId->volNo;
 
+    arrayidx=bfm_LookUp(&hashkey,type);
+    //printf("arrayidx is %d\n",arrayidx);
+   // if(!((BufferTable*)bufInfo[type].bufTable)[arrayidx])
+//	ERR(eNOTFOUND_BFM);
+
+    if(BI_FIXED(type,arrayidx)>0){
+	//printf("decrease fix\n");
+	BI_FIXED(type,arrayidx)--;
+    }
+    else{
+	printf("Warning: Fixed counter is less than 0!!!\n");
+    }	
     
     return( eNOERROR );
     

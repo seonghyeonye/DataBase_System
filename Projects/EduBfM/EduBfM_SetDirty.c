@@ -88,14 +88,22 @@ Four EduBfM_SetDirty(
     TrainID             *trainId,               /* IN which train has been modified in the buffer?  */
     Four                type )                  /* IN buffer type */
 {
-	/* These local variables are used in the solution code. However, you don¡¯t have to use all these variables in your code, and you may also declare and use additional local variables if needed. */
+	/* These local variables are used in the solution code. However, you donï¿½ï¿½t have to use all these variables in your code, and you may also declare and use additional local variables if needed. */
     Four                index;                  /* an index of the buffer table & pool */
-
+    BfMHashKey		hashkey;
 
     /*@ Is the paramter valid? */
     if (IS_BAD_BUFFERTYPE(type)) ERR(eBADBUFFERTYPE_BFM);
 
+    hashkey.pageNo=trainId->pageNo;
+    hashkey.volNo=trainId->volNo;
 
+    index=bfm_LookUp(&hashkey,type);
+
+    //printf("bits before is %d\n",BI_BITS(type,index));
+    //printf("expected cal bits is %d\n",BI_BITS(type,index)||DIRTY);
+    BI_BITS(type,index)=BI_BITS(type,index)|DIRTY;
+    //printf("result bit is %d\n",BI_BITS(type,index));
 
     return( eNOERROR );
 

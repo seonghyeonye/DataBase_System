@@ -80,12 +80,24 @@
  */
 Four EduBfM_FlushAll(void)
 {
-	/* These local variables are used in the solution code. However, you don¡¯t have to use all these variables in your code, and you may also declare and use additional local variables if needed. */
+	/* These local variables are used in the solution code. However, you donï¿½ï¿½t have to use all these variables in your code, and you may also declare and use additional local variables if needed. */
     Four        e;                      /* error */
     Two         i;                      /* index */
     Four        type;                   /* buffer type */
+    TrainID     trainId;
 
-    
+    for (type=PAGE_BUF;type<=LOT_LEAF_BUF;type++){
+        for (i=0;i<BI_NBUFS(type);i++){
+            if(BI_BITS(type,i)&DIRTY){
+                //printf("pagenumber is %d\n",BI_KEY(type,i).pageNo);
+                trainId.pageNo=BI_KEY(type,i).pageNo;
+                trainId.volNo=BI_KEY(type,i).volNo;
+                //printf("page of train is %d\n",trainId.pageNo);
+                //printf("vol of trainId %d\n",trainId.volNo);
+                bfm_FlushTrain(&trainId,type);
+            }
+        }
+    }
 
     return( eNOERROR );
     
