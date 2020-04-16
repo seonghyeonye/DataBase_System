@@ -107,7 +107,7 @@ Four EduOM_DestroyObject(
     Pool     *dlPool,		/* INOUT pool of dealloc list elements */
     DeallocListElem *dlHead)	/* INOUT head of dealloc list */
 {
-	/* These local variables are used in the solution code. However, you don¡¯t have to use all these variables in your code, and you may also declare and use additional local variables if needed. */
+	/* These local variables are used in the solution code. However, you donï¿½ï¿½t have to use all these variables in your code, and you may also declare and use additional local variables if needed. */
     Four        e;		/* error number */
     Two         i;		/* temporary variable */
     FileID      fid;		/* ID of file where the object was placed */
@@ -122,15 +122,86 @@ Four EduOM_DestroyObject(
     DeallocListElem *dlElem;	/* pointer to element of dealloc list */
     PhysicalFileID pFid;	/* physical ID of file */
     
-    
+    Four unique;
 
     /*@ Check parameters. */
     if (catObjForFile == NULL) ERR(eBADCATALOGOBJECT_OM);
 
     if (oid == NULL) ERR(eBADOBJECTID_OM);
 
+    //printf(" pid is %d\n",catObjForFile->pageNo);
+    BfM_GetTrain((TrainID *)oid,(char**)&apage,PAGE_BUF);
+    BfM_GetTrain((TrainID *)catObjForFile,(char**)&catPage,PAGE_BUF);
 
-    
+    GET_PTR_TO_CATENTRY_FOR_DATA(catObjForFile,catPage,catEntry);
+
+    pid.pageNo = oid->pageNo;
+    pid.volNo = oid->volNo;
+    printf("pid page no is %d\n",pid.pageNo);
+    printf("pagenm is %d\n",oid->slotNo);
+    printf("delete unique %d\n",oid->unique);
+
+    offset = apage->slot[-(oid->slotNo)].offset;
+    unique = apage->slot[-(oid->slotNo)].unique;
+    obj = (Object *)&(apage->data[offset]);
+    printf("offset is %d\n",offset);
+    printf("unique is %d\n",unique);
+
+    e=om_RemoveFromAvailSpaceList(catObjForFile,&pid,apage);
+    if (e < 0) ERRB1(e, &pid, PAGE_BUF);
+    printf("nslot is %d\n",apage->header.nSlots);
+    apage->slot[-1*oid->slotNo].offset=EMPTYSLOT;
+
+    last= (unique==apage->header.nSlots-1);
+
+    printf("apage header free is %d\n",apage->header.free);
+    printf("apage unused is %d\n",apage->header.unused);
+    printf("free area before is %d\n",SP_FREE(apage));
+    printf("cfree area before is %d\n",SP_CFREE(apage));
+
+    if(last){
+        //re
+        printf("this is last elem\n");
+        apage->header.nSlots--;
+        apage->header.free-=sizeof(ObjectHdr)+ALIGNED_LENGTH(obj->header.length);
+    }
+    else{
+    //re - when offset is at the end, free should be updated rather than unused
+    apage->header.unused+=sizeof(ObjectHdr)+ALIGNED_LENGTH(obj->header.length);
+    }
+
+    printf("free area after is %d\n",SP_FREE(apage));
+    printf("cfree after is %d\n",SP_CFREE(apage));
+
+    //BfM_SetDirty(&pid,PAGE_BUF);
+    //BfM_FreeTrain((TrainID*)catObjForFile, PAGE_BUF);
+
+   // EduOM_DestroyObject();
+    //obj->header.length=0;
+    //obj->data=NULL;
+
+    //obj=NULL;
+    //EduOM_DestroyObject(catObjForFile,oid,dlPool,dlHead);
+    //BfM_SetDirty(&pid,PAGE_BUF);
+    //BfM_FreeTrain((TrainID*)oid, PAGE_BUF);
+
+    printf("firstpage id is %d, %d\n",catEntry->firstPage,oid->pageNo);
+
+    if(apage->header.nSlots==0&&(catEntry->firstPage!=oid->pageNo)){
+        printf("case 1!\n");
+        om_FileMapDeletePage(catObjForFile, &pid);
+
+        e = Util_getElementFromPool(dlPool, &dlElem);
+        if( e < 0 ) ERR( e );
+        dlElem->type = DL_PAGE;
+        dlElem->elem.pid = pid; /* ID of the deallocated page */ 
+        dlElem->next = dlHead->next;
+        dlHead->next = dlElem;
+        //Re
+    }
+    else{
+        om_PutInAvailSpaceList(catObjForFile,&pid,apage);
+    }
     return(eNOERROR);
     
 } /* EduOM_DestroyObject() */
