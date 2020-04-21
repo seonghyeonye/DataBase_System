@@ -116,7 +116,7 @@ Four EduOM_ReadObject(
     Four     	length,		/* IN amount of data to read */
     char     	*buf)		/* OUT user buffer to return the read data */
 {
-	/* These local variables are used in the solution code. However, you don¡¯t have to use all these variables in your code, and you may also declare and use additional local variables if needed. */
+	/* These local variables are used in the solution code. However, you donï¿½ï¿½t have to use all these variables in your code, and you may also declare and use additional local variables if needed. */
     Four     	e;              /* error code */
     PageID 	pid;		/* page containing object specified by 'oid' */
     SlottedPage	*apage;		/* pointer to the buffer of the page  */
@@ -133,7 +133,16 @@ Four EduOM_ReadObject(
     
     if (buf == NULL) ERR(eBADUSERBUF_OM);
 
-    
+    BfM_GetTrain((TrainID *)oid,(char**)&apage,PAGE_BUF);
+    pid.pageNo = oid->pageNo;
+    pid.volNo = oid->volNo;
+    offset = apage->slot[-(oid->slotNo)].offset;
+    obj = (Object *)&(apage->data[offset]);
+    if(length==REMAINDER){
+        length=strlen(obj->data)-start;
+    }
+    memcpy(buf,obj->data+start,length);
+    BfM_FreeTrain(oid,PAGE_BUF);
 
     return(length);
     

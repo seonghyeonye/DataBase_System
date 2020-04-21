@@ -94,17 +94,19 @@ Four EduOM_PrevObject(
     ObjectID *prevOID,		/* OUT the previous object of a current object */
     ObjectHdr*objHdr)		/* OUT the object header of previous object */
 {
-	/* These local variables are used in the solution code. However, you don¡¯t have to use all these variables in your code, and you may also declare and use additional local variables if needed. */
+	/* These local variables are used in the solution code. However, you donï¿½ï¿½t have to use all these variables in your code, and you may also declare and use additional local variables if needed. */
     Four e;			/* error */
     Two  i;			/* index */
     Four offset;		/* starting offset of object within a page */
     PageID pid;			/* a page identifier */
     PageNo pageNo;		/* a temporary var for previous page's PageNo */
-    SlottedPage *apage;		/* a pointer to the data page */
+    SlottedPage *apage,*prevpage;		/* a pointer to the data page */
     Object *obj;		/* a pointer to the Object */
     SlottedPage *catPage;	/* buffer page containing the catalog object */
     sm_CatOverlayForData *catEntry; /* overlay structure for catalog object access */
-
+    VolNo volNo;
+    SlotNo slotno;
+    Unique unique;
 
 
     /*@ parameter checking */
@@ -112,7 +114,56 @@ Four EduOM_PrevObject(
     
     if (prevOID == NULL) ERR(eBADOBJECTID_OM);
 
-    
+    if(curOID==NULL){
+        BfM_GetTrain((TrainID *)catObjForFile,(char**)&catPage,PAGE_BUF);
+        GET_PTR_TO_CATENTRY_FOR_DATA(catObjForFile,catPage,catEntry);
+        if(!catEntry->firstPage)
+            return(EOS);
+
+        pageNo= catEntry->lastPage;
+        volNo=prevOID->volNo;
+        MAKE_PAGEID(pid,volNo,pageNo);
+        BfM_GetTrain(&pid,(char**)&apage,PAGE_BUF);
+        i=apage->header.nSlots-1; 
+        unique=apage->slot[-(i)].unique;
+
+        BfM_FreeTrain(catObjForFile,PAGE_BUF);
+        BfM_FreeTrain(&pid,PAGE_BUF);
+    }
+    else{
+        BfM_GetTrain((TrainID *)curOID,(char**)&apage,PAGE_BUF);
+        slotno=curOID->slotNo;
+        if(slotno==0){
+            if(!apage->header.prevPage)
+                return(EOS);
+            pageNo= apage->header.prevPage;
+            volNo=curOID->volNo;
+            MAKE_PAGEID(pid,volNo,pageNo);
+            BfM_GetTrain(&pid,(char**)&prevpage,PAGE_BUF);
+            i=prevpage->header.nSlots-1;
+            if(i==-1)
+                return(EOS);
+            unique=prevpage->slot[-(i)].unique;
+            
+            BfM_FreeTrain(curOID,PAGE_BUF);
+            BfM_FreeTrain(&pid,PAGE_BUF);
+        }
+        else{
+            pageNo=apage->header.pid.pageNo;
+            volNo=apage->header.pid.volNo;
+            i=slotno-1;
+            BfM_FreeTrain(curOID,PAGE_BUF);
+            unique=apage->slot[-(i)].unique;
+        }
+        // printf("slotno is %d\n",prevOID->slotNo);
+        // printf("page is %d\n",prevOID->pageNo);
+        // printf("vol is %d\n",prevOID->volNo);
+        // printf("unique is %d\n",prevOID->unique);
+    }
+    prevOID->pageNo=pageNo;
+    prevOID->volNo=volNo;
+    prevOID->slotNo=i;
+    prevOID->unique=unique;
 
     return(EOS);
     

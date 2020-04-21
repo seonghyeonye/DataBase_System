@@ -94,18 +94,20 @@ Four EduOM_NextObject(
     ObjectID  *nextOID,		/* OUT the next Object of a current Object */
     ObjectHdr *objHdr)		/* OUT the object header of next object */
 {
-	/* These local variables are used in the solution code. However, you don¡¯t have to use all these variables in your code, and you may also declare and use additional local variables if needed. */
+	/* These local variables are used in the solution code. However, you donï¿½ï¿½t have to use all these variables in your code, and you may also declare and use additional local variables if needed. */
     Four e;			/* error */
     Two  i;			/* index */
     Four offset;		/* starting offset of object within a page */
     PageID pid;			/* a page identifier */
     PageNo pageNo;		/* a temporary var for next page's PageNo */
-    SlottedPage *apage;		/* a pointer to the data page */
+    SlottedPage *apage,*nextpage;		/* a pointer to the data page */
     Object *obj;		/* a pointer to the Object */
     PhysicalFileID pFid;	/* file in which the objects are located */
     SlottedPage *catPage;	/* buffer page containing the catalog object */
     sm_CatOverlayForData *catEntry; /* data structure for catalog object access */
-
+    VolNo volNo;
+    Unique unique;
+    SlotNo slotno;
 
 
     /*@
@@ -115,6 +117,60 @@ Four EduOM_NextObject(
     
     if (nextOID == NULL) ERR(eBADOBJECTID_OM);
 
+    if(curOID==NULL){
+        BfM_GetTrain((TrainID *)catObjForFile,(char**)&catPage,PAGE_BUF);
+        GET_PTR_TO_CATENTRY_FOR_DATA(catObjForFile,catPage,catEntry);
+        if(!catEntry->firstPage)
+            return(EOS);
+
+        pageNo= catEntry->firstPage;
+        volNo=nextOID->volNo;
+        printf("pageNo is %d\n",pageNo);
+        printf("volNo is %d\n",volNo);
+        while(1){
+            MAKE_PAGEID(pid,volNo,pageNo);
+            BfM_GetTrain(&pid,(char**)&apage,PAGE_BUF);
+            if(apage->header.nSlots==0){
+                pageNo= apage->header.nextPage;
+                // if(!pageNo)
+                //     ERR(e);
+                continue;
+            }
+            i=0;
+            unique=apage->slot[-(i)].unique;
+            BfM_FreeTrain(catObjForFile,PAGE_BUF);
+            BfM_FreeTrain(&pid,PAGE_BUF);
+            break;
+        }
+    }
+    else{
+        BfM_GetTrain((TrainID *)curOID,(char**)&apage,PAGE_BUF);
+        slotno=curOID->slotNo;
+        if(slotno==apage->header.nSlots-1){
+            if(!apage->header.nextPage)
+                return(EOS);
+            pageNo= apage->header.nextPage;
+            volNo=nextOID->volNo;
+            MAKE_PAGEID(pid,volNo,pageNo);
+            BfM_GetTrain(&pid,(char**)&nextpage,PAGE_BUF);
+            i=0;
+            unique=nextpage->slot[-(i)].unique;
+            
+            BfM_FreeTrain(curOID,PAGE_BUF);
+            BfM_FreeTrain(&pid,PAGE_BUF);
+        }
+        else{
+            pageNo=apage->header.pid.pageNo;
+            volNo=apage->header.pid.volNo;
+            i=slotno+1;
+            BfM_FreeTrain(curOID,PAGE_BUF);
+            unique=apage->slot[-(i)].unique;
+        }
+    }
+    nextOID->pageNo=pageNo;
+    nextOID->volNo=volNo;
+    nextOID->slotNo=i;
+    nextOID->unique=unique;
 
 
     return(EOS);		/* end of scan */
