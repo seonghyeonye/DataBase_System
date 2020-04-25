@@ -117,7 +117,7 @@ Four EduOM_PrevObject(
     if(curOID==NULL){
         BfM_GetTrain((TrainID *)catObjForFile,(char**)&catPage,PAGE_BUF);
         GET_PTR_TO_CATENTRY_FOR_DATA(catObjForFile,catPage,catEntry);
-        if(!catEntry->firstPage)
+        if(catEntry->firstPage==-1)
             return(EOS);
 
         pageNo= catEntry->lastPage;
@@ -134,7 +134,7 @@ Four EduOM_PrevObject(
         BfM_GetTrain((TrainID *)curOID,(char**)&apage,PAGE_BUF);
         slotno=curOID->slotNo;
         if(slotno==0){
-            if(!apage->header.prevPage)
+            if(apage->header.prevPage==-1)
                 return(EOS);
             pageNo= apage->header.prevPage;
             volNo=curOID->volNo;
@@ -155,10 +155,6 @@ Four EduOM_PrevObject(
             BfM_FreeTrain(curOID,PAGE_BUF);
             unique=apage->slot[-(i)].unique;
         }
-        // printf("slotno is %d\n",prevOID->slotNo);
-        // printf("page is %d\n",prevOID->pageNo);
-        // printf("vol is %d\n",prevOID->volNo);
-        // printf("unique is %d\n",prevOID->unique);
     }
     prevOID->pageNo=pageNo;
     prevOID->volNo=volNo;

@@ -120,20 +120,21 @@ Four EduOM_NextObject(
     if(curOID==NULL){
         BfM_GetTrain((TrainID *)catObjForFile,(char**)&catPage,PAGE_BUF);
         GET_PTR_TO_CATENTRY_FOR_DATA(catObjForFile,catPage,catEntry);
-        if(!catEntry->firstPage)
+        if(catEntry->firstPage==-1)
             return(EOS);
 
         pageNo= catEntry->firstPage;
         volNo=nextOID->volNo;
-        printf("pageNo is %d\n",pageNo);
-        printf("volNo is %d\n",volNo);
         while(1){
             MAKE_PAGEID(pid,volNo,pageNo);
             BfM_GetTrain(&pid,(char**)&apage,PAGE_BUF);
             if(apage->header.nSlots==0){
                 pageNo= apage->header.nextPage;
-                // if(!pageNo)
-                //     ERR(e);
+                //error handling check needed
+                if(pageNo==-1){
+                    e=pageNo;
+                    ERR(e);
+                }
                 continue;
             }
             i=0;
@@ -147,7 +148,7 @@ Four EduOM_NextObject(
         BfM_GetTrain((TrainID *)curOID,(char**)&apage,PAGE_BUF);
         slotno=curOID->slotNo;
         if(slotno==apage->header.nSlots-1){
-            if(!apage->header.nextPage)
+            if(apage->header.nextPage==-1)
                 return(EOS);
             pageNo= apage->header.nextPage;
             volNo=nextOID->volNo;

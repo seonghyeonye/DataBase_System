@@ -139,7 +139,7 @@ Four EduOM_CreateObject(
     objectHdr.properties=0x0;
     objectHdr.length=0;
 
-    om_CreateObject(catObjForFile,nearObj,&objectHdr,length,data,oid);
+    eduom_CreateObject(catObjForFile,nearObj,&objectHdr,length,data,oid);
     
     return(eNOERROR);
 }

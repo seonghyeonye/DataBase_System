@@ -112,15 +112,46 @@ Four EduOM_CompactPage(
     Two    lastSlot;		/* last non empty slot */
     Two    i;			/* index variable */
 
-    if(slotNo==NIL){
-
+    apageDataOffset=0;
+    tpage=*apage;
+    if(tpage.header.free==0)
+        return(eNOERROR); 
+    lastSlot=tpage.header.nSlots;
+    
+    //not nil case test needed
+    if(slotNo!=NIL){
+        for(i=0;i<lastSlot;i++){
+            if(tpage.slot[-i].offset==EMPTYSLOT||i==slotNo){
+                continue;
+            }
+            obj = (Object *)&(tpage.data[tpage.slot[-i].offset]);
+            len=ALIGNED_LENGTH(obj->header.length)+sizeof(ObjectHdr);
+            apage->slot[-i].offset=apageDataOffset;
+            memcpy(&apage->data[apageDataOffset],obj,len);
+            apageDataOffset+=len;
+        }
+        obj=(Object *)&(tpage.data[tpage.slot[-slotNo].offset]);
+        len=ALIGNED_LENGTH(obj->header.length)+sizeof(ObjectHdr);
+        apage->slot[-slotNo].offset=apageDataOffset;
+        memcpy(&apage->data[apageDataOffset],obj,len);
+        apageDataOffset+=len;
     }
     else{
-        
+        for(i=0;i<lastSlot;i++){
+            if(tpage.slot[-i].offset==EMPTYSLOT){
+                continue;
+            }
+            obj = (Object *)&(tpage.data[tpage.slot[-i].offset]);
+            len=ALIGNED_LENGTH(obj->header.length)+sizeof(ObjectHdr);
+            apage->slot[-i].offset=apageDataOffset;
+            memcpy(&apage->data[apageDataOffset],obj,len);
+            apageDataOffset+=len;
+        }
     }
 
+    apage->header.free=apageDataOffset;
+    apage->header.unused=0;
     
-
     return(eNOERROR);
     
 } /* EduOM_CompactPage */
