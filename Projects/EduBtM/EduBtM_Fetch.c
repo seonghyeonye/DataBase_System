@@ -104,7 +104,7 @@ Four EduBtM_Fetch(
     Four     stopCompOp,	/* IN comparison operator of stop condition */
     BtreeCursor *cursor)	/* OUT Btree Cursor */
 {
-	/* These local variables are used in the solution code. However, you don¡¯t have to use all these variables in your code, and you may also declare and use additional local variables if needed. */
+	/* These local variables are used in the solution code. However, you donï¿½ï¿½t have to use all these variables in your code, and you may also declare and use additional local variables if needed. */
     int i;
     Four e;		   /* error number */
 
@@ -118,6 +118,20 @@ Four EduBtM_Fetch(
             ERR(eNOTSUPPORTED_EDUBTM);
     }
     
+    if(startCompOp==SM_BOF){
+        printf("first object\n");
+        e=btm_FirstObject(root,kdesc,stopKval,stopCompOp,cursor);
+        if(e<0)ERR(e);
+    }
+    else if(startCompOp==SM_EOF){
+        printf("last object\n");
+        e=btm_LastObject(root,kdesc,stopKval,stopCompOp,cursor);
+        if(e<0)ERR(e);
+    }
+    else{
+        printf("fetch\n");
+        e=btm_Fetch(root,kdesc,startKval,startCompOp,stopKval,stopCompOp,cursor);
+    }
 
     return(eNOERROR);
 
@@ -154,7 +168,7 @@ Four edubtm_Fetch(
     Four                stopCompOp,     /* IN comparison operator of stop condition */
     BtreeCursor         *cursor)        /* OUT Btree Cursor */
 {
-	/* These local variables are used in the solution code. However, you don¡¯t have to use all these variables in your code, and you may also declare and use additional local variables if needed. */
+	/* These local variables are used in the solution code. However, you donï¿½ï¿½t have to use all these variables in your code, and you may also declare and use additional local variables if needed. */
     Four                e;              /* error number */
     Four                cmp;            /* result of comparison */
     Two                 idx;            /* index */

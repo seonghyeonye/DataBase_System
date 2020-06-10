@@ -99,7 +99,7 @@ Four EduBtM_FetchNext(
     BtreeCursor                 *current,       /* IN current B+ tree cursor */
     BtreeCursor                 *next)          /* OUT next B+ tree cursor */
 {
-	/* These local variables are used in the solution code. However, you don¡¯t have to use all these variables in your code, and you may also declare and use additional local variables if needed. */
+	/* These local variables are used in the solution code. However, you donï¿½ï¿½t have to use all these variables in your code, and you may also declare and use additional local variables if needed. */
     int							i;
     Four                        e;              /* error number */
     Four                        cmp;            /* comparison result */
@@ -131,6 +131,14 @@ Four EduBtM_FetchNext(
         if(kdesc->kpart[i].type!=SM_INT && kdesc->kpart[i].type!=SM_VARSTRING)
             ERR(eNOTSUPPORTED_EDUBTM);
     }
+    // slotNo = current->slotNo;
+    // overflow = current->overflow;
+    // slotNo = current->slotNo;
+    // oidArrayElemNo = current->oidArrayElemNo;
+    
+    // BfM_GetTrain((TrainID *)catObjForFile,(char**)&catPage,PAGE_BUF);
+    // GET_PTR_TO_CATENTRY_FOR_BTREE(catObjForFile,catPage,catEntry);
+    btm_FetchNext(kdesc,kval,compOp,current,next);
 
     
     return(eNOERROR);
@@ -165,7 +173,7 @@ Four edubtm_FetchNext(
     BtreeCursor 	*current,	/* IN current cursor */
     BtreeCursor 	*next)		/* OUT next cursor */
 {
-	/* These local variables are used in the solution code. However, you don¡¯t have to use all these variables in your code, and you may also declare and use additional local variables if needed. */
+	/* These local variables are used in the solution code. However, you donï¿½ï¿½t have to use all these variables in your code, and you may also declare and use additional local variables if needed. */
     Four 		e;		/* error number */
     Four 		cmp;		/* comparison result */
     Two 		alignedKlen;	/* aligned length of a key length */

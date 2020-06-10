@@ -92,7 +92,7 @@ Four EduBtM_InsertObject(
     Pool     *dlPool,		/* INOUT pool of dealloc list */
     DeallocListElem *dlHead) /* INOUT head of the dealloc list */
 {
-	/* These local variables are used in the solution code. However, you don¡¯t have to use all these variables in your code, and you may also declare and use additional local variables if needed. */
+	/* These local variables are used in the solution code. However, you donï¿½ï¿½t have to use all these variables in your code, and you may also declare and use additional local variables if needed. */
     int i;
     Four e;			/* error number */
     Boolean lh;			/* for spliting */
@@ -121,7 +121,17 @@ Four EduBtM_InsertObject(
         if(kdesc->kpart[i].type!=SM_INT && kdesc->kpart[i].type!=SM_VARSTRING)
             ERR(eNOTSUPPORTED_EDUBTM);
     }
-    
+
+    BfM_GetTrain((TrainID *)catObjForFile,(char**)&catPage,PAGE_BUF);
+    GET_PTR_TO_CATENTRY_FOR_BTREE(catObjForFile,catPage,catEntry);
+
+    btm_Insert(catObjForFile,root,kdesc,kval,oid,&lf,&lh,&item,dlPool,dlHead);
+    if(lh==TRUE){
+        printf("split@@@@@@\n");
+        btm_root_insert(catObjForFile,root,&item);
+    }
+
+    BfM_FreeTrain(catObjForFile,PAGE_BUF);    
     
     return(eNOERROR);
     

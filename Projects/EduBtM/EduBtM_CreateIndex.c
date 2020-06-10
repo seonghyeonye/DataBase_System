@@ -88,14 +88,23 @@ Four EduBtM_CreateIndex(
     ObjectID *catObjForFile,	/* IN catalog object of B+ tree file */
     PageID *rootPid)		/* OUT root page of the newly created B+tree */
 {
-	/* These local variables are used in the solution code. However, you don¡¯t have to use all these variables in your code, and you may also declare and use additional local variables if needed. */
+	/* These local variables are used in the solution code. However, you donï¿½ï¿½t have to use all these variables in your code, and you may also declare and use additional local variables if needed. */
     Four e;			/* error number */
     Boolean isTmp;
     SlottedPage *catPage;	/* buffer page containing the catalog object */
     sm_CatOverlayForBtree *catEntry; /* pointer to Btree file catalog information */
     PhysicalFileID pFid;	/* physical file ID */
 
+    BfM_GetTrain((TrainID *)catObjForFile,(char**)&catPage,PAGE_BUF);
+    GET_PTR_TO_CATENTRY_FOR_BTREE(catObjForFile,catPage,catEntry);
 
+    MAKE_PHYSICALFILEID(pFid, catEntry->fid.volNo, catEntry->firstPage);
+    e = btm_AllocPage(catObjForFile, (PageID *)&pFid, rootPid);
+    if (e < 0) ERR(e);
+
+    btm_InitLeaf(rootPid, 1, 0);
+
+    BfM_FreeTrain(catObjForFile,PAGE_BUF);
 
     return(eNOERROR);
     
