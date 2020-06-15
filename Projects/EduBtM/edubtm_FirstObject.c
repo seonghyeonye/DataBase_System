@@ -94,7 +94,7 @@ Four edubtm_FirstObject(
     Four     		stopCompOp,	/* IN comparison operator of stop condition */
     BtreeCursor 	*cursor)	/* OUT The first ObjectID in the Btree */
 {
-	/* These local variables are used in the solution code. However, you don¡¯t have to use all these variables in your code, and you may also declare and use additional local variables if needed. */
+	/* These local variables are used in the solution code. However, you donï¿½ï¿½t have to use all these variables in your code, and you may also declare and use additional local variables if needed. */
     int			i;
     Four 		e;		/* error */
     Four 		cmp;		/* result of comparison */
@@ -104,6 +104,11 @@ Four edubtm_FirstObject(
     Two                 lEntryOffset;   /* starting offset of a leaf entry */
     btm_LeafEntry 	*lEntry;	/* a leaf entry */
     Two                 alignedKlen;    /* aligned length of the key length */
+    KeyValue   lval;
+    KeyValue   minval;
+    BtreePage       *childPage;
+    ObjectID        minoid;
+    Two             minslot;
     
 
     if (root == NULL) ERR(eBADPAGE_BTM);
@@ -114,6 +119,64 @@ Four edubtm_FirstObject(
         if(kdesc->kpart[i].type!=SM_INT && kdesc->kpart[i].type!=SM_VARSTRING)
             ERR(eNOTSUPPORTED_EDUBTM);
     }
+
+    BfM_GetTrain(root,(char **)&apage,PAGE_BUF);
+
+    // if(apage->any.hdr.type&LEAF){
+    //     printf("leaf fetch\n");
+    //     for(i=0;i<apage->bl.hdr.nSlots;i++){
+    //         lEntryOffset=apage->bl.slot[-i];
+    //         memcpy(lEntry, apage->bl.data+lEntryOffset, sizeof(btm_LeafEntry));
+    //         lval->len=lEntry->klen;
+    //         memcpy(lval->val,lEntry->kval,lEntry->klen);
+    //         if(minval==NULL){
+    //             *minval=*lval;
+    //         }
+    //         else{
+    //             cmp=btm_KeyCompare(kdesc,lval,minval);
+    //             if(cmp==LESS){
+    //                 *minval=*lval;
+    //             }
+    //         }
+    //     }
+
+    // }
+    minval.len=-1;
+    if(apage->any.hdr.type&INTERNAL){
+        child.pageNo=apage->bi.hdr.p0;
+        child.volNo=root->volNo;
+        BfM_GetTrain(&child,(char **)&childPage,PAGE_BUF);
+        for(i=0;i<childPage->bl.hdr.nSlots;i++){
+            lEntryOffset=childPage->bl.slot[-i];
+            lEntry=&childPage->bl.data[lEntryOffset];
+            // memcpy(entryleaf, childPage->bl.data+lEntryOffset,4);
+            Two keyLen= lEntry->klen;
+            lval.len=keyLen;
+            memcpy(&lval.val,lEntry->kval,(size_t)lEntry->klen);
+            if(minval.len==-1){
+                minval=lval;
+                memcpy(&minoid,lEntry->kval+ALIGNED_LENGTH(lEntry->klen),sizeof(ObjectID));
+                minslot=i;
+            }
+            else{
+                cmp=btm_KeyCompare(kdesc,&lval,&minval);
+                if(cmp==LESS){
+                    minval=lval;
+                    memcpy(&minoid,lEntry->kval+ALIGNED_LENGTH(lEntry->klen),sizeof(ObjectID));
+                    minslot=i;
+                }
+            }
+        }
+        cursor->flag=CURSOR_ON;
+        cursor->oid=minoid;
+        cursor->key=minval;
+        cursor->leaf=child;
+        cursor->slotNo=minslot;
+
+    }
+    
+    BfM_FreeTrain(&child,PAGE_BUF);
+    BfM_FreeTrain(root,PAGE_BUF);
     
 
     return(eNOERROR);

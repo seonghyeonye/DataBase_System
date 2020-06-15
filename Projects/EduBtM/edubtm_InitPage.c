@@ -87,11 +87,29 @@ Four edubtm_InitInternal(
     Boolean root,		/* IN Is it root ? */
     Boolean isTmp)              /* IN Is it temporary ? - COOKIE12FEB98 */
 {
-	/* These local variables are used in the solution code. However, you don¡¯t have to use all these variables in your code, and you may also declare and use additional local variables if needed. */
+	/* These local variables are used in the solution code. However, you donï¿½ï¿½t have to use all these variables in your code, and you may also declare and use additional local variables if needed. */
     Four e;			/* error number */
     BtreeInternal *page;	/* a page pointer */
 
+    e = BfM_GetNewTrain(internal, (char **)&page, PAGE_BUF);
+    if (e < 0) ERR(e);
 
+    page->hdr.pid=*internal;
+
+    SET_PAGE_TYPE(page,BTREE_PAGE_TYPE);
+    if(root){
+        printf("root\n");
+        page->hdr.type|=ROOT;
+    }
+    page->hdr.type|=INTERNAL;
+    page->hdr.p0=NIL;
+    page->hdr.nSlots=0;
+    page->hdr.free=0;
+    page->hdr.unused=0;
+
+    e = BfM_SetDirty(internal, PAGE_BUF); 
+    if (e < 0) ERRB1(e, internal, PAGE_BUF);
+    BfM_FreeTrain(internal,PAGE_BUF);
     
     return(eNOERROR);
     
@@ -121,11 +139,30 @@ Four edubtm_InitLeaf(
     Boolean root,		/* IN Is it root ? */
     Boolean isTmp)              /* IN Is it temporary ? */
 {
-	/* These local variables are used in the solution code. However, you don¡¯t have to use all these variables in your code, and you may also declare and use additional local variables if needed. */
+	/* These local variables are used in the solution code. However, you donï¿½ï¿½t have to use all these variables in your code, and you may also declare and use additional local variables if needed. */
     Four e;			/* error number */
     BtreeLeaf *page;		/* a page pointer */
 
+    e = BfM_GetNewTrain(leaf, (char **)&page, PAGE_BUF);
+    if (e < 0) ERR(e);
 
+    page->hdr.pid=*leaf;
+
+    SET_PAGE_TYPE(page,BTREE_PAGE_TYPE);
+    if(root){
+        printf("root\n");
+        page->hdr.type|=ROOT;
+    }
+    page->hdr.type|=LEAF;
+    page->hdr.nSlots=0;
+    page->hdr.free=0;
+    page->hdr.prevPage=NIL;
+    page->hdr.nextPage=NIL;
+    page->hdr.unused=0;
+
+    e = BfM_SetDirty(leaf, PAGE_BUF); 
+    if (e < 0) ERRB1(e, leaf, PAGE_BUF);
+    BfM_FreeTrain(leaf,PAGE_BUF);
     
     return(eNOERROR);
     

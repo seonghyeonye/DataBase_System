@@ -102,7 +102,7 @@ Four EduBtM_CreateIndex(
     e = btm_AllocPage(catObjForFile, (PageID *)&pFid, rootPid);
     if (e < 0) ERR(e);
 
-    btm_InitLeaf(rootPid, 1, 0);
+    edubtm_InitLeaf(rootPid, 1, 0);
 
     BfM_FreeTrain(catObjForFile,PAGE_BUF);
 

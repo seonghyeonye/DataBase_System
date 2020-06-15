@@ -125,10 +125,11 @@ Four EduBtM_InsertObject(
     BfM_GetTrain((TrainID *)catObjForFile,(char**)&catPage,PAGE_BUF);
     GET_PTR_TO_CATENTRY_FOR_BTREE(catObjForFile,catPage,catEntry);
 
-    btm_Insert(catObjForFile,root,kdesc,kval,oid,&lf,&lh,&item,dlPool,dlHead);
+    lh=0;
+    lf=0;
+    e= edubtm_Insert(catObjForFile,root,kdesc,kval,oid,&lf,&lh,&item,dlPool,dlHead);
     if(lh==TRUE){
-        printf("split@@@@@@\n");
-        btm_root_insert(catObjForFile,root,&item);
+        edubtm_root_insert(catObjForFile,root,&item);
     }
 
     BfM_FreeTrain(catObjForFile,PAGE_BUF);    

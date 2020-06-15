@@ -92,7 +92,7 @@ Four edubtm_FreePages(
     Pool                *dlPool,        /* INOUT pool of dealloc list elements */
     DeallocListElem     *dlHead)        /* INOUT head of the dealloc list */
 {
-	/* These local variables are used in the solution code. However, you don¡¯t have to use all these variables in your code, and you may also declare and use additional local variables if needed. */
+	/* These local variables are used in the solution code. However, you donï¿½ï¿½t have to use all these variables in your code, and you may also declare and use additional local variables if needed. */
     Four                e;              /* error number */
     Two                 i;              /* index */
     Two                 alignedKlen;    /* aligned length of the key length */
@@ -105,8 +105,34 @@ Four edubtm_FreePages(
     btm_InternalEntry   *iEntry;        /* an internal entry */
     btm_LeafEntry       *lEntry;        /* a leaf entry */
     DeallocListElem     *dlElem;        /* an element of dealloc list */
+    BtreeInternal       *intpage;
 
+    e = BfM_GetNewTrain(curPid, (char **)&apage, PAGE_BUF);
+    if (e < 0) ERR(e);
 
+    if(apage->any.hdr.type&INTERNAL){
+        MAKE_PAGEID(tPid,curPid->volNo,apage->bi.hdr.p0);
+        edubtm_FreePages(pFid,&tPid,dlPool,dlHead);
+
+    }
+    else if(apage->any.hdr.type&LEAF){
+        if(apage->bl.hdr.nextPage!=-1){
+            MAKE_PAGEID(tPid,curPid->volNo,apage->bl.hdr.nextPage);
+            edubtm_FreePages(pFid,&tPid,dlPool,dlHead);
+        }
+    }
+    
+    apage->any.hdr.type=FREEPAGE;
+    e = Util_getElementFromPool(dlPool, &dlElem);
+    if (e < 0) ERR(e);
+    dlElem->type = DL_PAGE;
+    dlElem->elem.pid = *curPid; 
+    dlElem->next = dlHead->next; 
+    dlHead->next = dlElem;
+
+    e = BfM_SetDirty(curPid, PAGE_BUF); 
+    if (e < 0) ERRB1(e, curPid, PAGE_BUF);
+    BfM_FreeTrain(curPid,PAGE_BUF);
     
     return(eNOERROR);
     

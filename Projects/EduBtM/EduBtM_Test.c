@@ -241,6 +241,7 @@ Four EduBtM_Test(Four volId, Four handle){
 
 				/* The successful default solution code is called if "Edu" is omitted from the function name in the following line */
 				e = EduBtM_InsertObject(&catalogEntry, &rootPid, &kdesc, &kval, &oid, NULL, NULL);
+				printf("e is %d\n",e);
 				if (e == eDUPLICATEDKEY_BTM) printf("There is the same key in the B+ tree index.\nEduBtM allows only unique keys\n");
 				else if(e < eNOERROR) ERR(e);
 				else printf("The object (key: %d, OID: ( %d, %d, %d, %d)) is inserted into the B+ tree index.\n", 

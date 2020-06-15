@@ -118,7 +118,7 @@ Four edubtm_Insert(
     Pool                        *dlPool,                /* INOUT pool of dealloc list */
     DeallocListElem             *dlHead)                /* INOUT head of the dealloc list */
 {
-	/* These local variables are used in the solution code. However, you don¡¯t have to use all these variables in your code, and you may also declare and use additional local variables if needed. */
+	/* These local variables are used in the solution code. However, you donï¿½ï¿½t have to use all these variables in your code, and you may also declare and use additional local variables if needed. */
     Four                        e;                      /* error number */
     Boolean                     lh;                     /* local 'h' */
     Boolean                     lf;                     /* local 'f' */
@@ -132,7 +132,7 @@ Four edubtm_Insert(
     SlottedPage                 *catPage;               /* buffer page containing the catalog object */
     sm_CatOverlayForBtree       *catEntry;              /* pointer to Btree file catalog information */
     PhysicalFileID              pFid;                   /* B+-tree file's FileID */
-
+    Two                         childIdx;
 
     /* Error check whether using not supported functionality by EduBtM */
     int i;
@@ -141,8 +141,36 @@ Four edubtm_Insert(
         if(kdesc->kpart[i].type!=SM_INT && kdesc->kpart[i].type!=SM_VARSTRING)
             ERR(eNOTSUPPORTED_EDUBTM);
     }
+    BfM_GetTrain(root,(char **)&apage,PAGE_BUF);  
 
-    
+    if(apage->any.hdr.type&LEAF){
+        e = edubtm_InsertLeaf(catObjForFile,root,&apage->bl,kdesc,kval,oid,f,h,item);
+    }
+    else if(apage->any.hdr.type&INTERNAL){
+        btm_BinarySearchInternal(&apage->bl,kdesc,kval,&idx);
+        if(idx==-1){
+            newPid.pageNo=apage->bi.hdr.p0;
+            newPid.volNo=root->volNo;
+        }
+        else{
+            iEntryOffset=apage->bi.slot[-idx];
+            iEntry=apage->bi.data+iEntryOffset;
+            newPid.pageNo=iEntry->spid;
+            newPid.volNo=root->volNo;
+        }
+
+        edubtm_Insert(catObjForFile,&newPid,kdesc,kval,oid,&lf,&lh,&litem,dlPool,dlHead);
+        if(lh){
+            tKey.len=litem.klen;
+            memcpy(tKey.val,litem.kval,litem.klen);
+            btm_BinarySearchInternal(&apage->bl,kdesc,&tKey,&childIdx);
+            edubtm_InsertInternal(catObjForFile,&apage->bi,&litem,childIdx,h,item);
+        }
+    }
+
+    e = BfM_SetDirty(root,PAGE_BUF);
+    BfM_FreeTrain(root,PAGE_BUF);
+
     return(eNOERROR);
     
 }   /* edubtm_Insert() */
@@ -187,19 +215,23 @@ Four edubtm_InsertLeaf(
     InternalItem                *item)          /* OUT Internal Item which will be inserted */
                                                 /*     into its parent when 'h' is TRUE */
 {
-	/* These local variables are used in the solution code. However, you don¡¯t have to use all these variables in your code, and you may also declare and use additional local variables if needed. */
+	/* These local variables are used in the solution code. However, you donï¿½ï¿½t have to use all these variables in your code, and you may also declare and use additional local variables if needed. */
     Four                        e;              /* error number */
     Two                         i;
     Two                         idx;            /* index for the given key value */
     LeafItem                    leaf;           /* a Leaf Item */
     Boolean                     found;          /* search result */
-    btm_LeafEntry               *entry;         /* an entry in a leaf page */
+    // btm_LeafEntry               *entry;         /* an entry in a leaf page */
     Two                         entryOffset;    /* start position of an entry */
     Two                         alignedKlen;    /* aligned length of the key length */
     PageID                      ovPid;          /* PageID of an overflow page */
     Two                         entryLen;       /* length of an entry */
     ObjectID                    *oidArray;      /* an array of ObjectIDs */
     Two                         oidArrayElemNo; /* an index for the ObjectID array */
+    Two                         freespace;
+    Two                         numSlot;
+    btm_LeafEntry               entry;
+    Four                        elem;
 
 
     /* Error check whether using not supported functionality by EduBtM */
@@ -213,6 +245,43 @@ Four edubtm_InsertLeaf(
     /*@ Initially the flags are FALSE */
     *h = *f = FALSE;
     
+    found=btm_BinarySearchLeaf(page,kdesc,kval,&idx);
+    if(found==TRUE) ERR(eDUPLICATEDKEY_BTM);
+    alignedKlen=ALIGNED_LENGTH(kval->len);
+    entryLen= alignedKlen+4+sizeof(ObjectID);
+    freespace=entryLen+2;
+
+    if(BL_FREE(page)>=freespace){
+        btm_CompactLeafPage(page,NIL);
+        entry.nObjects=(Two)1;
+        entry.klen=kval->len;
+        memcpy(entry.kval,kval->val,alignedKlen);
+        memcpy(entry.kval+alignedKlen,oid,sizeof(ObjectID));
+
+        entryOffset=page->hdr.free;
+
+        memcpy(page->data+entryOffset,&entry,entryLen);
+
+        numSlot=page->hdr.nSlots;
+
+        if(numSlot>=idx+1){
+            for(elem=1;elem<(numSlot-idx);elem++){
+                page->slot[-numSlot-1+elem]=page->slot[-numSlot+elem];
+            }
+        }
+        page->slot[-idx-1]=entryOffset;
+         
+        page->hdr.nSlots+=1;
+        page->hdr.free+=entryLen;
+    }
+    else{
+        leaf.nObjects=0;
+        leaf.klen=kval->len;
+        memcpy(leaf.kval,kval->val,kval->len);
+        leaf.oid=*oid;
+        btm_SplitLeaf(catObjForFile,pid,page,idx,&leaf,item);
+        *h = TRUE;
+    }
 
 
     return(eNOERROR);
@@ -252,18 +321,51 @@ Four edubtm_InsertInternal(
     Boolean             *h,             /* OUT whether the given page is splitted */
     InternalItem        *ritem)         /* OUT if the given page is splitted, the internal item may be returned by 'ritem'. */
 {
-	/* These local variables are used in the solution code. However, you don¡¯t have to use all these variables in your code, and you may also declare and use additional local variables if needed. */
+	/* These local variables are used in the solution code. However, you donï¿½ï¿½t have to use all these variables in your code, and you may also declare and use additional local variables if needed. */
     Four                e;              /* error number */
     Two                 i;              /* index */
     Two                 entryOffset;    /* starting offset of an internal entry */
     Two                 entryLen;       /* length of the new entry */
-    btm_InternalEntry   *entry;         /* an internal entry of an internal page */
-
+    // btm_InternalEntry   *entry;         /* an internal entry of an internal page */
+    Two                         freespace;
+    Two                         numSlot;
+    btm_InternalEntry               entry;
+    Two                         alignedKlen;
+    Two                         elem;
 
     
     /*@ Initially the flag are FALSE */
     *h = FALSE;
-    
+
+    alignedKlen=ALIGNED_LENGTH((item->klen)+2);
+    entryLen= alignedKlen+sizeof(ShortPageID);
+    freespace=entryLen+2;
+    if(BI_FREE(page)>=freespace){
+        btm_CompactInternalPage(page,NIL);
+        entry.spid=item->spid;
+        entry.klen=item->klen;
+
+        entryOffset=page->hdr.free;
+        memcpy(page->data+entryOffset,&item->spid,sizeof(ShortPageID));
+        memcpy(page->data+entryOffset+sizeof(ShortPageID),&item->klen,2);
+        memcpy(page->data+entryOffset+sizeof(ShortPageID)+2,item->kval,alignedKlen-2);
+        
+
+        numSlot=page->hdr.nSlots;
+        if(numSlot>=high+1){
+            for(elem=1;elem<(numSlot-high);elem++){
+                page->slot[-numSlot-1+elem]=page->slot[-numSlot+elem];
+            }
+        }
+        page->slot[-high-1]=entryOffset;
+        page->hdr.nSlots+=1;
+        page->hdr.free+=entryLen;
+    }
+    else{
+        btm_SplitInternal(catObjForFile,page,high,item,ritem);
+        *h = TRUE;
+
+    }
     
 
     return(eNOERROR);

@@ -119,17 +119,14 @@ Four EduBtM_Fetch(
     }
     
     if(startCompOp==SM_BOF){
-        printf("first object\n");
-        e=btm_FirstObject(root,kdesc,stopKval,stopCompOp,cursor);
+        e=edubtm_FirstObject(root,kdesc,stopKval,stopCompOp,cursor);
         if(e<0)ERR(e);
     }
     else if(startCompOp==SM_EOF){
-        printf("last object\n");
-        e=btm_LastObject(root,kdesc,stopKval,stopCompOp,cursor);
+        e=edubtm_LastObject(root,kdesc,stopKval,stopCompOp,cursor);
         if(e<0)ERR(e);
     }
     else{
-        printf("fetch\n");
         e=btm_Fetch(root,kdesc,startKval,startCompOp,stopKval,stopCompOp,cursor);
     }
 
@@ -188,6 +185,7 @@ Four edubtm_Fetch(
     btm_InternalEntry   *iEntry;        /* an internal entry */
     Two                 lEntryOffset;   /* starting offset of a leaf entry */
     btm_LeafEntry       *lEntry;        /* a leaf entry */
+    // Four                j;
 
 
     /* Error check whether using not supported functionality by EduBtM */
@@ -198,6 +196,91 @@ Four edubtm_Fetch(
             ERR(eNOTSUPPORTED_EDUBTM);
     }
 
+    BfM_GetTrain(root,(char **)&apage,PAGE_BUF);  
+
+    if(apage->any.hdr.type&LEAF){
+        // for(i=0;i<apage->bl.hdr.nSlots;i++){
+        //     lEntryOffset=apage->bl.slot[-i];
+        //     lEntry=&apage->bl.data[lEntryOffset];
+
+        // }
+        cmp=btm_KeyCompare(kdesc,startKval,stopKval);
+        switch(startCompOp){
+            case SM_EQ:
+                printf("eq\n");
+                found=btm_BinarySearchLeaf(&apage->bl,kdesc,startKval,&idx);
+                lEntryOffset=apage->bl.slot[-idx];
+                lEntry=&apage->bl.data[lEntryOffset];
+                if(!found||cmp!=EQUAL){
+                    printf("found is %d\n",found);
+                    cursor->flag=CURSOR_EOS;
+                }
+                else{
+                    cursor->flag=CURSOR_ON;
+                    memcpy(&cursor->oid,lEntry->kval+ALIGNED_LENGTH(lEntry->klen),sizeof(ObjectID));
+                    cursor->key=*startKval;
+                    cursor->leaf=*root;
+                    cursor->slotNo=idx;
+                }
+                break;
+            case SM_LT:
+                switch(stopCompOp){
+                    case SM_LT:
+                        if(cmp!=LESS){
+                            cursor->flag=CURSOR_EOS;   
+                        }
+                        else{
+                            found = btm_BinarySearchLeaf(&apage->bl,kdesc,startKval,&idx);
+                            lEntryOffset=apage->bl.slot[-idx];
+                            lEntry=&apage->bl.data[lEntryOffset];
+                        }      
+                        break;                 
+
+                }
+
+        }
+        // printf("leaf\n");
+        // found=btm_BinarfoundhLeaf(&apage->bl,kdesc,startKval,&idx);
+        // cmp=btm_KeyCompare(kdesc,startKval,stopKval);
+        // lEntryOffset=apage->bl.slot[-idx];
+        // lEntry=&apage->bl.data[lEntryOffset];
+        // // lval.len= lEntry->klen;
+        
+        // if(startCompOp==SM_EQ){
+        //     if(!found||cmp!=EQUAL){
+        //         cursor->flag=CURSOR_EOS;
+        //     }
+        //     else{
+        //         cursor->flag=CURSOR_ON;
+        //         memcpy(&cursor->oid,lEntry->kval+ALIGNED_LENGTH(lEntry->klen),sizeof(ObjectID));
+        //         cursor->key=*startKval;
+        //         cursor->leaf=*root;
+        //         cursor->slotNo=idx;
+        //     }
+        // }
+        // else if(startCompOp==SM_LT){
+
+        // }
+    }
+    else if(apage->any.hdr.type&INTERNAL){
+        printf("internal %d\n",root->pageNo);
+        btm_BinarySearchInternal(&apage->bi,kdesc,startKval,&idx);
+        printf("idx is %d\n",idx);
+        if(idx==-1){
+            child.pageNo=apage->bi.hdr.p0;
+            child.volNo=root->volNo;
+        }
+        else{
+            iEntryOffset=apage->bi.slot[-idx];
+            iEntry=&apage->bi.data[iEntryOffset];
+            printf("go to page %d\n",iEntry->spid);
+            child.pageNo=iEntry->spid;
+            child.volNo=root->volNo;
+        }
+        edubtm_Fetch(&child,kdesc,startKval,startCompOp,stopKval,startCompOp,cursor);
+    }
+
+    BfM_FreeTrain(root,PAGE_BUF);
 
     return(eNOERROR);
     

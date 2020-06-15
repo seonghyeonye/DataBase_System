@@ -95,7 +95,7 @@ Four edubtm_root_insert(
     PageID       *root,		 /* IN root Page IDentifier */
     InternalItem *item)		 /* IN Internal item which will be the unique entry of the new root */
 {
-	/* These local variables are used in the solution code. However, you don¡¯t have to use all these variables in your code, and you may also declare and use additional local variables if needed. */
+	/* These local variables are used in the solution code. However, you donï¿½ï¿½t have to use all these variables in your code, and you may also declare and use additional local variables if needed. */
     Four      e;		/* error number */
     PageID    newPid;		/* newly allocated page */
     PageID    nextPid;		/* PageID of the next page of root if root is leaf */
@@ -104,9 +104,49 @@ Four edubtm_root_insert(
     BtreeLeaf *nextPage;	/* pointer to a buffer holding next page of root */
     btm_InternalEntry *entry;	/* an internal entry */
     Boolean   isTmp;
+    BtreeInternal *rootInternal;
+    BtreePage *rightPage;
 
+    btm_AllocPage(catObjForFile,root,&newPid);
+    BfM_GetTrain(root,(char **)&rootPage,PAGE_BUF);
+    BfM_GetNewTrain(&newPid,(char **)&newPage,PAGE_BUF);
 
+    *newPage=*rootPage;
+    newPage->any.hdr.pid=newPid;
+
+    edubtm_InitInternal(root,1,0);
+
+    entry=(btm_InternalEntry *)item;
+
+    rootPage->any.hdr.type=INTERNAL|ROOT;
+
+    rootInternal=&rootPage->bi;
+
+    rootInternal->slot[0]=rootInternal->hdr.free;
     
+    memcpy(rootInternal->data,entry,sizeof(ShortPageID)+ALIGNED_LENGTH(2+entry->klen));
+
+    rootInternal->hdr.nSlots+=1;
+    rootInternal->hdr.free+=sizeof(ShortPageID)+ALIGNED_LENGTH(2+entry->klen);
+    rootInternal->hdr.p0=(ShortPageID)newPid.pageNo;
+
+    nextPid.pageNo=entry->spid;
+    nextPid.volNo=newPid.volNo;
+    BfM_GetTrain(&nextPid,(char **)&rightPage,PAGE_BUF);
+
+    if((newPage->any.hdr.type&LEAF)&&(rightPage->any.hdr.type&LEAF)){
+        newPage->bl.hdr.nextPage=entry->spid;
+        rightPage->bl.hdr.prevPage=newPid.pageNo;
+        // rightPage->bl.hdr.prevPage=newPid.pageNo;
+    }
+
+    BfM_SetDirty(&newPid, PAGE_BUF); 
+    BfM_SetDirty(root, PAGE_BUF); 
+    BfM_SetDirty(&nextPid, PAGE_BUF); 
+
+    BfM_FreeTrain(&newPid,PAGE_BUF);  
+    BfM_FreeTrain(root,PAGE_BUF);
+    BfM_FreeTrain(&nextPid,PAGE_BUF); 
     return(eNOERROR);
     
 } /* edubtm_root_insert() */

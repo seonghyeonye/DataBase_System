@@ -93,8 +93,9 @@ Four edubtm_LastObject(
     Four     		stopCompOp,	/* IN comparison operator of stop condition */
     BtreeCursor 	*cursor)	/* OUT the last BtreeCursor to be returned */
 {
-	/* These local variables are used in the solution code. However, you don¡¯t have to use all these variables in your code, and you may also declare and use additional local variables if needed. */
+	/* These local variables are used in the solution code. However, you donï¿½ï¿½t have to use all these variables in your code, and you may also declare and use additional local variables if needed. */
     int			i;
+    int         j;
     Four 		e;		/* error number */
     Four 		cmp;		/* result of comparison */
     BtreePage 		*apage;		/* pointer to the buffer holding current page */
@@ -108,7 +109,13 @@ Four edubtm_LastObject(
     btm_LeafEntry 	*lEntry;	/* a leaf entry */
     btm_InternalEntry 	*iEntry;	/* an internal entry */
     Four 		alignedKlen;	/* aligned length of the key length */
-        
+    KeyValue   lval;
+    KeyValue   maxval;
+    BtreePage       *childPage;
+    ObjectID        maxoid;
+    Two             maxslot;
+    PageNo          childPageNo;
+
 
     if (root == NULL) ERR(eBADPAGE_BTM);
 
@@ -118,6 +125,46 @@ Four edubtm_LastObject(
         if(kdesc->kpart[i].type!=SM_INT && kdesc->kpart[i].type!=SM_VARSTRING)
             ERR(eNOTSUPPORTED_EDUBTM);
     }
+
+    BfM_GetTrain(root,(char **)&apage,PAGE_BUF);
+
+    maxval.len=-1;
+    if(apage->any.hdr.type&INTERNAL){
+        iEntry=&apage->bi.data[apage->bi.slot[-(apage->bi.hdr.nSlots-1)]];
+
+        child.pageNo=iEntry->spid;
+        child.volNo=root->volNo;
+        BfM_GetTrain(&child,(char **)&childPage,PAGE_BUF);
+        for(i=0;i<childPage->bl.hdr.nSlots;i++){
+            lEntryOffset=childPage->bl.slot[-i];
+            lEntry=&childPage->bl.data[lEntryOffset];
+            Two keyLen= lEntry->klen;
+            lval.len=keyLen;
+            memcpy(&lval.val,lEntry->kval,(size_t)lEntry->klen);
+            if(maxval.len==-1){
+                maxval=lval;
+                memcpy(&maxoid,lEntry->kval+ALIGNED_LENGTH(lEntry->klen),sizeof(ObjectID));
+                maxslot=i;
+            }
+            else{
+                cmp=btm_KeyCompare(kdesc,&lval,&maxval);
+                if(cmp==GREAT){
+                    maxval=lval;
+                    memcpy(&maxoid,lEntry->kval+ALIGNED_LENGTH(lEntry->klen),sizeof(ObjectID));
+                    maxslot=i;
+                }
+            }
+        }
+        cursor->flag=CURSOR_ON;
+        cursor->oid=maxoid;
+        cursor->key=maxval;
+        cursor->leaf=child;
+        cursor->slotNo=maxslot;
+
+    }
+    
+    BfM_FreeTrain(&child,PAGE_BUF);
+    BfM_FreeTrain(root,PAGE_BUF);
     
 
     return(eNOERROR);
